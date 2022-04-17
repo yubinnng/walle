@@ -1,1 +1,6 @@
-# walle-workflow
+# Walle Workflow
+
+## Architecture
+
+![Architecture Diagram](./Architecture.png)
+
