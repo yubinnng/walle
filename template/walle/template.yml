@@ -1,0 +1,4 @@
+language: walle
+fprocess: ./handler
+welcome_message: |
+  You have created a new walle workflow engine based on openfaas

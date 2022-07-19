@@ -1,0 +1,28 @@
+version: 0.1
+name: example-workflow
+desc: Example Wrokflow
+triggers:
+- type: http
+  name: http-trigger
+  async: true
+tasks:
+- name: task-1
+  type: http
+  url: http://localhost:8080/function/test-http
+  timeout: 3s
+- name: task-2
+  type: http
+  url: http://localhost:8080/function/test-http
+  timeout: 3s
+- name: task-3
+  type: http
+  url: http://localhost:8080/function/test-http
+  method: GET
+  retry: 3
+  timeout: 3s
+  depends: [task-1, task-2]
+- name: task-4
+  type: http
+  url: http://localhost:8080/function/test-http
+  timeout: 3s
+  depends: [task-1]
