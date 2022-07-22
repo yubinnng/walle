@@ -12,10 +12,10 @@ func ConnectNATS() {
 	// Connect to a server
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
-		log.Fatal("cannot connect to NATS")
+		log.Fatal("Failed to connect to NATS")
 	}
 	client = nc
-	log.Println("connected to NATS")
+	log.Println("Connected to NATS")
 }
 
 func Publish(topic string, data []byte) {

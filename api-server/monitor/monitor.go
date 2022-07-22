@@ -2,12 +2,14 @@ package monitor
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"sync"
-	"time"
+	"walle/api-server/storage"
+	"walle/api-server/workflow"
 
 	"github.com/nats-io/nats.go"
+	"gorm.io/gorm"
 )
 
 var client *nats.Conn
@@ -22,15 +24,8 @@ func Start() {
 	client = nc
 	log.Println("connected to NATS")
 	// subscribe workflow status topic
-	client.Subscribe("workflow-status", handleWorkflowMsg)
+	// client.Subscribe("workflow-status", handleWorkflowMsg)
 	client.Subscribe("task-status", handleTaskMsg)
-}
-
-type WorkflowEvent struct {
-	ExecutionID    string
-	WorkflowName   string
-	WorkflowStatus string
-	CreatedAt      time.Time
 }
 
 const (
@@ -40,28 +35,26 @@ const (
 	StatusSuccess = "SUCCESS"
 )
 
-func handleWorkflowMsg(m *nats.Msg) {
-	mu.Lock()
-	defer mu.Unlock()
-	fmt.Printf("Received workflow event: %s\n", string(m.Data))
-	var e WorkflowEvent
-	if err := json.Unmarshal(m.Data, &e); err != nil {
-		log.Println("failed to parse event")
-	}
-	// if e.WorkflowStatus == workflow.StatusRunning {
-
-	// }
-}
-
-type TaskEvent struct {
-	ExecutionID string
-	TaskName    string
-	TaskStatus  string
-	CreatedAt   time.Time
-}
-
 func handleTaskMsg(m *nats.Msg) {
 	mu.Lock()
 	defer mu.Unlock()
-	fmt.Printf("Received task event: %s\n", string(m.Data))
+	log.Printf("Received task event: %s\n", string(m.Data))
+	var e workflow.TaskEvent
+	if err := json.Unmarshal(m.Data, &e); err != nil {
+		log.Println("failed to parse event")
+	}
+	// retrieve execution
+	exec := &workflow.Execution{}
+	err := storage.Client.First(exec, "id = ?", e.ExecutionID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Printf("execution %q is not exist\n", e.ExecutionID)
+		return
+	}
+	// update task status
+	exec.UpdateTaskStatus(e)
+	// store into database
+	if err := storage.Client.Save(exec).Error; err != nil {
+		log.Printf("failed to update execution, %s", err.Error())
+		return
+	}
 }

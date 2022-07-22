@@ -2,14 +2,13 @@ package engine
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	handler "github.com/openfaas/templates-sdk/go-http"
 )
 
 type ExecuteRequest struct {
+	ID   string       `json:"id"`
 	Spec WorkflowSpec `json:"spec"`
 }
 
@@ -23,14 +22,8 @@ func Handle(req handler.Request) (handler.Response, error) {
 			StatusCode: http.StatusBadRequest,
 		}, err
 	}
-	log.Println(requestBody)
-
-	wf := NewWorkflow(requestBody.Spec, uuid.New().String())
-	// spec := WorkflowSpec{}
-	// file, err := ioutil.ReadFile("./workflow.yaml")
-	// yaml.Unmarshal(file, &spec)
-	// wf := NewWorkflow(spec, "1")
-	wf.Start()
+	exec := NewExecution(requestBody.ID, requestBody.Spec)
+	exec.Start()
 
 	return handler.Response{
 		StatusCode: http.StatusOK,

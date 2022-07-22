@@ -1,10 +1,10 @@
 package engine
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"handler/event"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -14,6 +14,7 @@ type TaskSpec struct {
 	Name        string            `json:"name"`
 	Type        string            `json:"type"`
 	Url         string            `json:"url"`
+	Header      map[string]string `json:"header"`
 	Method      string            `json:"method"`
 	RequestBody map[string]string `json:"requestBody"`
 	Retry       int               `json:"retry"`
@@ -24,43 +25,43 @@ type TaskSpec struct {
 const (
 	StatusWaiting = "WAITING"
 	StatusRunning = "RUNNING"
+	StatusAbort   = "ABORT"
 	StatusSuccess = "SUCCESS"
 	StatusError   = "ERROR"
 )
 
 type TaskEvent struct {
-	ExecutionID string
-	TaskName    string
-	TaskStatus  string
-	CreatedAt   time.Time
+	ExecutionID string    `json:"execution_id"`
+	TaskName    string    `json:"task_name"`
+	TaskStatus  string    `json:"task_status"`
+	TaskLog     string    `json:"task_log"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type Task interface {
-	GetName() string
-	GetType() string
+	Name() string
+	Type() string
 	Run() error
-	GetStatus() string
-	Ready() bool
-	AddSubscriber(notifyChan chan TaskEvent)
-	GetNotifyChan() chan TaskEvent
-	String() string
+	EventChan() chan TaskEvent
+	AddSubscriber(subscriber Task)
 }
 
 type HttpTask struct {
-	ExecID      string
-	Name        string
-	Url         string
-	Method      string
-	RequestBody map[string]string
-	Retry       int
-	Timeout     time.Duration
-	Dependency  map[string]bool
-	Subscribers []chan TaskEvent
-	NotifyChan  chan TaskEvent
-	Status      string
+	executionID string
+	name        string
+	url         string
+	method      string
+	header      map[string]string
+	requestBody map[string]string
+	retry       int
+	timeout     time.Duration
+	status      string
+	dependency  map[string]bool
+	subscribers []chan TaskEvent
+	eventChan   chan TaskEvent
 }
 
-func NewHttpTask(taskSpec TaskSpec, execID string) Task {
+func NewHttpTask(taskSpec TaskSpec, executionID string, totalTask int) Task {
 	// set default value
 	if taskSpec.Timeout <= 0 {
 		taskSpec.Timeout = 10 * time.Second
@@ -69,131 +70,129 @@ func NewHttpTask(taskSpec TaskSpec, execID string) Task {
 		taskSpec.Retry = 3
 	}
 	task := &HttpTask{
-		ExecID:      execID,
-		Name:        taskSpec.Name,
-		Url:         taskSpec.Url,
-		Method:      taskSpec.Method,
-		RequestBody: taskSpec.RequestBody,
-		Retry:       taskSpec.Retry,
-		Timeout:     taskSpec.Timeout,
-		Status:      StatusWaiting,
-		NotifyChan:  make(chan TaskEvent),
+		executionID: executionID,
+		name:        taskSpec.Name,
+		url:         taskSpec.Url,
+		method:      taskSpec.Method,
+		header:      taskSpec.Header,
+		requestBody: taskSpec.RequestBody,
+		retry:       taskSpec.Retry,
+		timeout:     taskSpec.Timeout,
+		status:      StatusWaiting,
+		eventChan:   make(chan TaskEvent, totalTask),
 	}
 	// build dependency set
-	task.Dependency = make(map[string]bool)
+	task.dependency = make(map[string]bool)
 	for _, dep := range taskSpec.Depends {
-		task.Dependency[dep] = false
+		task.dependency[dep] = false
 	}
 	return task
 }
 
-func (task *HttpTask) GetName() string {
-	return task.Name
+func (task *HttpTask) Name() string {
+	return task.name
 }
 
-func (task *HttpTask) GetType() string {
+func (task *HttpTask) Type() string {
 	return "http"
 }
 
-func (task *HttpTask) Run() error {
-	task.SetStatus(StatusWaiting)
-	for len(task.Dependency) > 0 {
-		// fmt.Printf("%q waiting for %v tasks\n", task.Name, task.Dependency)
-		event := <-task.NotifyChan
-		if event.TaskStatus == StatusSuccess {
-			delete(task.Dependency, event.TaskName)
-		}
-		if event.TaskStatus == StatusError {
-			fmt.Printf("task %q interupted\n", task.Name)
-			task.SetStatus(StatusError)
-			return fmt.Errorf("task %q interupted", task.Name)
-		}
-	}
-	task.SetStatus(StatusRunning)
+func (task *HttpTask) request() error {
 	client := &http.Client{
-		Timeout: task.Timeout,
+		Timeout: task.timeout,
 	}
-	req, err := http.NewRequest(task.Method, task.Url, nil)
+	jsonBody, err := json.Marshal(task.requestBody)
 	if err != nil {
-		task.SetStatus(StatusError)
-		fmt.Printf("Task %q occurred error: %q \n", task.Name, err.Error())
-		return fmt.Errorf("error occurred in task %q, error: %q", task.GetName(), err.Error())
+		return err
+	}
+	req, err := http.NewRequest(task.method, task.url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+	for k, v := range task.header {
+		req.Header.Set(k, v)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		task.SetStatus(StatusError)
-		fmt.Printf("Task %q occurred error: %q \n", task.Name, err.Error())
-		return fmt.Errorf("error occurred in task %q, error: %q", task.GetName(), err.Error())
+		return err
 	}
-	defer resp.Body.Close()
-	responseBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		task.SetStatus(StatusError)
-		fmt.Printf("task %q occurred error: %q \n", task.Name, err.Error())
-		return fmt.Errorf("error occurred in task %q, error: %q", task.GetName(), err.Error())
+	if resp.StatusCode/100 == 2 {
+		return nil
 	}
-	if resp.StatusCode != 200 {
-		task.SetStatus(StatusError)
-		fmt.Printf("Task %q occurred error: %q \n", task.Name, responseBody)
-		return fmt.Errorf("error occurred in task %q, error: %q", task.GetName(), responseBody)
+	return fmt.Errorf("error request, response status: %s", resp.Status)
+}
+
+func (task *HttpTask) Run() error {
+	for len(task.dependency) > 0 {
+		event := <-task.eventChan
+		if event.TaskStatus == StatusSuccess {
+			delete(task.dependency, event.TaskName)
+		}
+		if event.TaskStatus == StatusError {
+			log.Printf("Execution %q: task %q abort\n", task.executionID, task.name)
+			task.status = StatusAbort
+			task.PublishEvent(TaskEvent{
+				ExecutionID: task.executionID,
+				TaskName:    task.name,
+				TaskStatus:  task.status,
+				UpdatedAt:   time.Now(),
+			})
+			return fmt.Errorf("Execution %q: task %q abort", task.executionID, task.name)
+		}
 	}
-	task.SetStatus(StatusSuccess)
-	fmt.Printf("Task %q successfully done, resp: %q \n", task.Name, responseBody)
+	// all dependencies satisfied, close event channel
+	close(task.eventChan)
+	task.status = StatusRunning
+	task.PublishEvent(TaskEvent{
+		ExecutionID: task.executionID,
+		TaskName:    task.name,
+		TaskStatus:  task.status,
+		UpdatedAt:   time.Now(),
+	})
+	log.Printf("Execution %q: task %q start\n", task.executionID, task.name)
+
+	if err := task.request(); err != nil {
+		task.status = StatusError
+		task.PublishEvent(TaskEvent{
+			ExecutionID: task.executionID,
+			TaskName:    task.name,
+			TaskStatus:  task.status,
+			TaskLog:     err.Error(),
+			UpdatedAt:   time.Now(),
+		})
+		log.Printf("Execution %q: http task %q request error\n", task.executionID, task.name)
+		return fmt.Errorf("Execution %q: http task %q request error", task.executionID, task.name)
+	}
+	task.status = StatusSuccess
+	task.PublishEvent(TaskEvent{
+		ExecutionID: task.executionID,
+		TaskName:    task.name,
+		TaskStatus:  task.status,
+		UpdatedAt:   time.Now(),
+	})
+	log.Printf("Execution %q: task %q done successfully\n", task.executionID, task.name)
 	return nil
 }
 
-func (task *HttpTask) GetStatus() string {
-	return task.Status
-}
-
-func (task *HttpTask) SetStatus(status string) {
-	task.Status = status
-	e := TaskEvent{
-		ExecutionID: task.ExecID,
-		TaskName:    task.Name,
-		TaskStatus:  status,
-		CreatedAt:   time.Now(),
-	}
+func (task *HttpTask) PublishEvent(e TaskEvent) {
 	// notify local subscriber task
 	task.notifyAll(e)
 	// publish to messaging queue
 	data, _ := json.Marshal(e)
-	log.Printf("publish task event %v\n", e)
 	event.Publish("task-status", data)
 }
 
 // notify all subscriber
 func (task *HttpTask) notifyAll(event TaskEvent) {
-	for _, subscriber := range task.Subscribers {
-		// non-blocking send notification in case of the subscriber error
-		select {
-		case subscriber <- event:
-			// fmt.Printf("%q send notification\n", task.Name)
-		default:
-		}
+	for _, subscriber := range task.subscribers {
+		subscriber <- event
 	}
 }
 
-func (task *HttpTask) Ready() bool {
-	return task.Status == StatusWaiting && len(task.Dependency) == 0
+func (task *HttpTask) AddSubscriber(subscriber Task) {
+	task.subscribers = append(task.subscribers, subscriber.EventChan())
 }
 
-func (task *HttpTask) TasksDone(tasks []Task) {
-	for _, t := range tasks {
-		if t.GetStatus() == StatusSuccess {
-			delete(task.Dependency, t.GetName())
-		}
-	}
-}
-
-func (task *HttpTask) AddSubscriber(notifyChan chan TaskEvent) {
-	task.Subscribers = append(task.Subscribers, notifyChan)
-}
-
-func (task *HttpTask) GetNotifyChan() chan TaskEvent {
-	return task.NotifyChan
-}
-
-func (task *HttpTask) String() string {
-	return task.Name
+func (task *HttpTask) EventChan() chan TaskEvent {
+	return task.eventChan
 }

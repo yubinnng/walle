@@ -40,7 +40,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", makeRequestHandler())
-	log.Println("listening", s.Addr)
+	log.Println("Listening to", s.Addr)
 	listenUntilShutdown(s, healthInterval, writeTimeout)
 }
 

@@ -1,21 +1,15 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"walle/api-server/storage"
 	"walle/api-server/workflow"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
-
-var ENGINE_URL = os.Getenv("WALLE_ENGINE_URL")
 
 type CreateWorkflowRequest struct {
 	Spec string `binding:"required"`
@@ -31,7 +25,12 @@ func CreateWorkflow(c *gin.Context) {
 	}
 	yamlSpec := string(bytes)
 	// fmt.Println(yamlSpec)
-	wf := workflow.New(yamlSpec)
+	wf, err := workflow.New(yamlSpec)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Error(err)
+		return
+	}
 	// fmt.Println(wf)
 	if err := storage.Client.Create(&wf).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -109,41 +108,31 @@ func RemoveWorkflow(c *gin.Context) {
 	storage.Client.Where("name = ?", name).Delete(&workflow.Metadata{})
 }
 
-type ExecuteRequest struct {
-	Spec workflow.WorkflowSpec `json:"spec"`
-}
-
 func ExecuteWorkflow(c *gin.Context) {
 	name := c.Param("name")
+	// retrieve spec
 	var md workflow.Metadata
 	err := storage.Client.First(&md, "name = ?", name).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("workflow %q is not exist", name)})
 		return
 	}
-	// parse spec
-	request := ExecuteRequest{
-		Spec: workflow.ParseYamlSpec(md.Spec),
-	}
-	jsonData, err := json.Marshal(request)
+	// new execution
+	exec, err := workflow.NewExecution(md.Spec)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		c.Error(err)
 		return
 	}
-	// send execution request
-	resp, err := http.Post(ENGINE_URL, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
+	// store execution into database
+	if err := storage.Client.Create(&exec).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		c.Error(err)
 		return
 	}
-	if resp.StatusCode != 200 {
-		defer resp.Body.Close()
-		respBody, _ := io.ReadAll(resp.Body)
-		resp := string(respBody)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": resp})
-		c.Error(errors.New(resp))
+	if err := exec.Start(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(err)
 		return
 	}
 }

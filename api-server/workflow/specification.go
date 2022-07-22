@@ -29,8 +29,8 @@ type TriggerSpec struct {
 	Type string
 }
 
-func ParseYamlSpec(yamlSpec string) WorkflowSpec {
+func ParseYamlSpec(yamlSpec string) (WorkflowSpec, error) {
 	var spec WorkflowSpec
-	yaml.Unmarshal([]byte(yamlSpec), &spec)
-	return spec
+	err := yaml.Unmarshal([]byte(yamlSpec), &spec)
+	return spec, err
 }

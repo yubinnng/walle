@@ -17,21 +17,27 @@ func (Metadata) TableName() string {
 	return "metadata"
 }
 
-func New(yamlSpec string) *Metadata {
+func New(yamlSpec string) (*Metadata, error) {
 	// parse workflow specification
-	spec := ParseYamlSpec(yamlSpec)
+	spec, err := ParseYamlSpec(yamlSpec)
+	if err != nil {
+		return nil, err
+	}
 	return &Metadata{
 		Name:      spec.Name,
 		Desc:      spec.Desc,
 		Spec:      yamlSpec,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-	}
+	}, nil
 }
 
 func (md *Metadata) Update(yamlSpec string) error {
 	// parse workflow specification
-	spec := ParseYamlSpec(yamlSpec)
+	spec, err := ParseYamlSpec(yamlSpec)
+	if err != nil {
+		return err
+	}
 	if md.Name != spec.Name {
 		return errors.New("cannot modify workflow name")
 	}
