@@ -53,6 +53,7 @@ func CreateWorkflow(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	c.JSON(http.StatusOK, wf)
 }
 
 type GetWorkflowResponse struct {
