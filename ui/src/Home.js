@@ -3,25 +3,38 @@ import { Layout, Menu } from "antd";
 import { PlusSquareOutlined } from "@ant-design/icons";
 import Edit from "./Edit";
 import Workflow from "./Workflow";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { store } from "./store";
+import Execution from "./Execution";
 
 const { Content, Footer, Sider } = Layout;
 const NEW = "new";
 
-const items = [NEW, "workflow-1", "workflow-2"].map((name) => ({
-  key: name,
-  icon: name === NEW ? <PlusSquareOutlined /> : null,
-  label: name === NEW ? "New Workflow" : name,
-}));
-
 const LeftSider = () => {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState("new");
+  const [menuItems, setMenuItems] = useState([]);
+  const { selected } = store;
 
   const handleMenuClick = ({ key }) => {
-    setSelected(key);
-    navigate("/workflow/" + key);
+    store.selected = key;
   };
+
+  useEffect(() => {
+    navigate("/" + selected);
+  }, [selected]);
+
+  useEffect(() => {
+    axios.get("/workflow/list").then((resp) => {
+      let names = [NEW].concat(resp.data);
+      let items = names.map((name) => ({
+        key: name,
+        icon: name === NEW ? <PlusSquareOutlined /> : null,
+        label: name === NEW ? "New Workflow" : name,
+      }));
+      setMenuItems(items);
+    });
+  }, [selected]);
 
   return (
     <Sider
@@ -48,9 +61,8 @@ const LeftSider = () => {
       </div>
       <Menu
         mode="inline"
-        defaultSelectedKeys={[NEW]}
         selectedKeys={[selected]}
-        items={items}
+        items={menuItems}
         onClick={handleMenuClick}
       />
     </Sider>
@@ -73,8 +85,10 @@ const Home = () => {
           }}
         >
           <Routes>
-            <Route path="/workflow/new" element={<Edit />} />
-            <Route path="/workflow/:name" element={<Workflow />} />
+            <Route index element={<Edit />} />
+            <Route path="/new" element={<Edit />} />
+            <Route path="/exec/:id" element={<Execution />} />
+            <Route path="/:name" element={<Workflow />} />
           </Routes>
         </Content>
         <Footer
@@ -82,7 +96,7 @@ const Home = () => {
             textAlign: "center",
           }}
         >
-          Ant Design ©2018 Created by Ant UED
+          Walle Serverless Workflow @2022
         </Footer>
       </Layout>
     </Layout>

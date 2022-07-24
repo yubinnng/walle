@@ -1,34 +1,181 @@
-import { Card, Space } from "antd";
-import { Routes, Route, useParams } from 'react-router-dom';
+import { Card, Space, Button, Row, Col, Modal, message } from "antd";
+import { DeleteOutlined, CaretRightOutlined } from "@ant-design/icons";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { store } from "./store";
+import mermaid from "mermaid";
+import { parseSpec, toMermaid } from "./utils";
 
 const Workflow = () => {
   let { name } = useParams();
+  store.selected = name;
 
-  return (
-    <Space
-      direction="vertical"
-      size="middle"
-      style={{
-        display: "flex",
-      }}
-    >
-      <div style={{ fontSize: "1.5rem" }}>{name}</div>
-      <Card title="Info" size="small">
+  const [workflow, setWorkflow] = useState({
+    name: "",
+    spec: "",
+    createdAt: "",
+    updatedAt: "",
+  });
+
+  const [graph, setGraph] = useState();
+
+  useEffect(() => {
+    axios.get("/workflow/" + name).then((resp) => {
+      setWorkflow(resp.data);
+      let text = toMermaid(parseSpec(resp.data.spec));
+      if (text) {
+        mermaid.render("workflow-graph", text, (graph) => {
+          setGraph(graph);
+        });
+      }
+    });
+  }, [name]);
+
+  const [isModalVisible, setIsDeleteModalVisible] = useState(false);
+  const showDeleteModal = () => {
+    setIsDeleteModalVisible(true);
+  };
+  const handleDeleteCancel = () => {
+    setIsDeleteModalVisible(false);
+  };
+  const handleDelete = () => {
+    axios.delete("/workflow/" + name).then((resp) => {
+      store.selected = "new";
+      setIsDeleteModalVisible(false);
+    });
+  };
+
+  const Info = () => {
+    return (
+      <Card title="Metadata" size="small">
         <div>
-          <p>URL: http://localhost:8080/example-workflow</p>
-          <p>Created: 28 July 2022</p>
-          <p>Updated: 28 July 2022</p>
+          <p>URL: http://localhost:8080/{workflow.name}</p>
+          <p>Created: {workflow.createdAt}</p>
+          <p>Updated: {workflow.updatedAt}</p>
         </div>
       </Card>
-      {/* <Card title="Triggers" size="small">
-        <p>Card content</p>
-        <p>Card content</p>
-      </Card> */}
-      <Card title="Executions (2)" size="small">
-        <p>Card content</p>
-        <p>Card content</p>
+    );
+  };
+
+  const Executions = () => {
+    const [executions, setExecutions] = useState([]);
+    const fetchExecutions = () => {
+      axios.get("/execution/list?workflow_name=" + name).then((resp) => {
+        setExecutions(resp.data);
+      });
+    };
+    useEffect(() => {
+      fetchExecutions();
+      const inter = setInterval(fetchExecutions, 5000);
+      return () => {
+        clearInterval(inter);
+      };
+    }, [name]);
+
+    const handleExec = () => {
+      axios.post("/workflow/" + workflow.name + "/exec");
+      message.success("Successfully executed");
+    };
+
+    return (
+      <Card
+        title={
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>Executions ({executions.length})</div>
+            <Button
+              type="primary"
+              icon={<CaretRightOutlined />}
+              style={{ marginLeft: "10px" }}
+              onClick={handleExec}
+            >
+              Execute
+            </Button>
+          </div>
+        }
+        size="small"
+      >
+        <Col>
+          <Space
+            direction="vertical"
+            size="middle"
+            style={{
+              display: "flex",
+            }}
+          >
+            <Row>
+              <Col span={8}>ID</Col>
+              <Col span={4}>Status</Col>
+              <Col span={6}>Started At</Col>
+              <Col span={6}>Ended At</Col>
+            </Row>
+            {executions.map((exec, key) => {
+              return (
+                <Row key={key}>
+                  <Col span={8}>
+                    <Link to={"/exec/" + exec.id}>{exec.id}</Link>
+                  </Col>
+                  <Col span={4}>{exec.status}</Col>
+                  <Col span={6}>{exec.startAt}</Col>
+                  <Col span={6}>{exec.endAt}</Col>
+                </Row>
+              );
+            })}
+          </Space>
+        </Col>
       </Card>
-    </Space>
+    );
+  };
+
+  mermaid.initialize({ startOnLoad: true });
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <div style={{ fontSize: "1.5rem" }}>{workflow.name}</div>
+        <Button
+          type="primary"
+          danger
+          icon={<DeleteOutlined />}
+          style={{ marginLeft: "25px" }}
+          onClick={showDeleteModal}
+          shape="round"
+        />
+        <Modal
+          title="Delete Confirmation"
+          visible={isModalVisible}
+          onOk={handleDelete}
+          onCancel={handleDeleteCancel}
+        >
+          <p>Are you sure to delete workflow {workflow.name}?</p>
+        </Modal>
+      </div>
+      <Row gutter={[16]}>
+        <Col span={16}>
+          <Space direction="vertical" style={{ display: "flex" }}>
+            <Info />
+            <Executions />
+          </Space>
+        </Col>
+        <Col span={8}>
+          <Row justify="center">
+            <div dangerouslySetInnerHTML={{ __html: graph }} />
+          </Row>
+        </Col>
+      </Row>
+    </>
   );
 };
 
