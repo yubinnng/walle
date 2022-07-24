@@ -1,5 +1,5 @@
 import resso from "resso";
 
-const store = resso({ selected: "new" });
+const store = resso({ selected: "" });
 
 export { store };

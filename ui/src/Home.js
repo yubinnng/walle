@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { store } from "./store";
 import Execution from "./Execution";
+import New from "./New";
 
 const { Content, Footer, Sider } = Layout;
 const NEW = "new";
@@ -18,11 +19,8 @@ const LeftSider = () => {
 
   const handleMenuClick = ({ key }) => {
     store.selected = key;
+    navigate("/" + key);
   };
-
-  useEffect(() => {
-    navigate("/" + selected);
-  }, [selected]);
 
   useEffect(() => {
     axios.get("/workflow/list").then((resp) => {
@@ -85,8 +83,9 @@ const Home = () => {
           }}
         >
           <Routes>
-            <Route index element={<Edit />} />
-            <Route path="/new" element={<Edit />} />
+            <Route index element={<New />} />
+            <Route path="/new" element={<New />} />
+            <Route path="/edit/:name" element={<Edit />} />
             <Route path="/exec/:id" element={<Execution />} />
             <Route path="/:name" element={<Workflow />} />
           </Routes>

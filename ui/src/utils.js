@@ -1,22 +1,19 @@
 import yaml from "js-yaml";
+import mermaid from "mermaid";
 
 const parseSpec = (spec) => {
-  const workflow = yaml.load(spec);
-  if (
-    workflow === undefined ||
-    workflow.tasks === undefined ||
-    workflow.tasks.length === 0
-  ) {
+  try {
+    return yaml.load(spec);
+  } catch {
     return null;
   }
-  return workflow;
 };
 
 const toMermaid = (workflow) => {
   if (workflow == null) {
     return null;
   }
-  let graph = `graph\n`;
+  let text = `graph\n`;
   try {
     // tasks that no other task depends on
     const tails = new Set();
@@ -24,10 +21,10 @@ const toMermaid = (workflow) => {
     workflow.tasks.forEach((task) => {
       tails.add(task.name);
       if (task.depends === undefined || task.depends.length === 0) {
-        graph += `Start((Start)) --> ${task.name}((${task.name}))\n`;
+        text += `Start((Start)) --> ${task.name}((${task.name}))\n`;
       } else {
         task.depends.forEach((dep) => {
-          graph += `${dep}((${dep})) --> ${task.name}((${task.name}))\n`;
+          text += `${dep}((${dep})) --> ${task.name}((${task.name}))\n`;
           // dep is not a tail
           tails.delete(dep);
         });
@@ -35,11 +32,11 @@ const toMermaid = (workflow) => {
     });
     // tails -> Done
     tails.forEach((tail) => {
-      graph += `${tail}((${tail})) --> Done((Done))\n`;
+      text += `${tail}((${tail})) --> Done((Done))\n`;
     });
-    return graph;
+    return mermaid.render("workflow-graph", text);
   } catch {
-    console.log("failed to parse workflow spec");
+    console.log("invalid workflow spec");
     return null;
   }
 };

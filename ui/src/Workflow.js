@@ -1,15 +1,18 @@
 import { Card, Space, Button, Row, Col, Modal, message } from "antd";
-import { DeleteOutlined, CaretRightOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  CaretRightOutlined,
+  EditOutlined,
+} from "@ant-design/icons";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { store } from "./store";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import mermaid from "mermaid";
 import { parseSpec, toMermaid } from "./utils";
 
 const Workflow = () => {
+  const navigate = useNavigate();
   let { name } = useParams();
-  store.selected = name;
 
   const [workflow, setWorkflow] = useState({
     name: "",
@@ -23,12 +26,7 @@ const Workflow = () => {
   useEffect(() => {
     axios.get("/workflow/" + name).then((resp) => {
       setWorkflow(resp.data);
-      let text = toMermaid(parseSpec(resp.data.spec));
-      if (text) {
-        mermaid.render("workflow-graph", text, (graph) => {
-          setGraph(graph);
-        });
-      }
+      setGraph(toMermaid(parseSpec(resp.data.spec)));
     });
   }, [name]);
 
@@ -41,14 +39,39 @@ const Workflow = () => {
   };
   const handleDelete = () => {
     axios.delete("/workflow/" + name).then((resp) => {
-      store.selected = "new";
+      navigate("/");
       setIsDeleteModalVisible(false);
     });
   };
 
+  const handleEdit = () => {
+    navigate("/edit/" + workflow.name);
+  };
+
   const Info = () => {
     return (
-      <Card title="Metadata" size="small">
+      <Card
+        title={
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>Metadata</div>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              style={{ marginLeft: "10px" }}
+              onClick={handleEdit}
+            >
+              Edit
+            </Button>
+          </div>
+        }
+        size="small"
+      >
         <div>
           <p>URL: http://localhost:8080/{workflow.name}</p>
           <p>Created: {workflow.createdAt}</p>

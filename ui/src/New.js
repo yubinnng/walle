@@ -1,25 +1,17 @@
 import { Col, Row, Input, Button } from "antd";
+import mermaid from "mermaid";
 import { useState, useEffect } from "react";
 import { parseSpec, toMermaid } from "./utils";
-
 import axios from "axios";
-
 import { SaveOutlined } from "@ant-design/icons";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const { TextArea } = Input;
 
-const Edit = () => {
-  const { name } = useParams();
+const New = () => {
   const [spec, setSpec] = useState();
   const [graph, setGraph] = useState();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    axios.get("/workflow/" + name).then((resp) => {
-      setSpec(resp.data.spec);
-    });
-  }, []);
 
   const handleSpecChange = (val) => {
     setSpec(val.target.value);
@@ -38,7 +30,7 @@ const Edit = () => {
           },
         })
         .then((resp) => {
-          navigate("/" + name);
+          navigate("/" + resp.data.name);
         })
         .catch((error) => {
           console.log(error);
@@ -53,7 +45,7 @@ const Edit = () => {
 
   return (
     <>
-      <p style={{ fontSize: "1.5rem" }}>{name}</p>
+      <p style={{ fontSize: "1.5rem" }}>Create a New Workflow</p>
       <Row gutter={16}>
         <Col span={16}>
           <Row gutter={[0, 10]}>
@@ -82,4 +74,4 @@ const Edit = () => {
   );
 };
 
-export default Edit;
+export default New;
