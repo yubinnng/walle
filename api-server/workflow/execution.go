@@ -22,7 +22,16 @@ const (
 	StatusError   = "ERROR"
 )
 
-type ExecutionTasks []TaskEvent
+type ExecutionTask struct {
+	Name        string    `json:"name"`
+	ExecutionID string    `json:"executionId"`
+	Status      string    `json:"status"`
+	Log         string    `json:"log"`
+	StartedAt   time.Time `json:"startedAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type ExecutionTasks []ExecutionTask
 
 func (tasks ExecutionTasks) Value() (driver.Value, error) {
 	bytes, err := json.Marshal(tasks)
@@ -43,11 +52,12 @@ func (tasks *ExecutionTasks) Scan(src interface{}) error {
 
 type Execution struct {
 	ID           string         `json:"id"`
-	WorkflowName string         `json:"workflow_name"`
+	WorkflowName string         `json:"workflowName"`
+	Status       string         `json:"status"`
 	Tasks        ExecutionTasks `json:"tasks"`
 	Spec         string         `json:"-" gorm:"-"`
-	StartAt      time.Time      `json:"start_at"`
-	EndAt        time.Time      `json:"end_at"`
+	StartAt      time.Time      `json:"startAt"`
+	EndAt        time.Time      `json:"endAt"`
 }
 
 func (Execution) TableName() string {
@@ -62,18 +72,19 @@ func NewExecution(yamlSpec string) (*Execution, error) {
 		return nil, err
 	}
 	id := uuid.New().String()
-	tasks := make([]TaskEvent, len(spec.Tasks))
+	tasks := make([]ExecutionTask, len(spec.Tasks))
 	for i, taskSpec := range spec.Tasks {
-		tasks[i] = TaskEvent{
+		tasks[i] = ExecutionTask{
 			ExecutionID: id,
-			TaskName:    taskSpec.Name,
-			TaskStatus:  StatusWaiting,
+			Name:        taskSpec.Name,
+			Status:      StatusWaiting,
 			UpdatedAt:   now,
 		}
 	}
 	return &Execution{
 		ID:           id,
 		WorkflowName: spec.Name,
+		Status:       StatusRunning,
 		Tasks:        tasks,
 		Spec:         yamlSpec,
 		StartAt:      now,
@@ -109,29 +120,36 @@ func (exec *Execution) Start() error {
 	return nil
 }
 
-func (exec *Execution) UpdateTaskStatus(e TaskEvent) {
-	allDone := true
+func (exec *Execution) UpdateTaskStatus(e ExecutionTask) {
+	exec.Status = StatusSuccess
 	for i := 0; i < len(exec.Tasks); i++ {
 		task := &exec.Tasks[i]
 		// update tasks
-		if task.TaskName == e.TaskName {
-			task.TaskStatus = e.TaskStatus
-			task.TaskLog = e.TaskLog
+		if task.Name == e.Name {
+			task.Status = e.Status
+			task.Log = e.Log
 			task.UpdatedAt = e.UpdatedAt
-		}
-		if task.TaskStatus != StatusSuccess {
-			allDone = false
+			if task.Status == StatusRunning {
+				task.StartedAt = e.UpdatedAt
+			}
+			break
 		}
 	}
-	if allDone {
+	if exec.Status == StatusSuccess || exec.Status == StatusError {
+		return
+	}
+	exec.Status = StatusSuccess
+	for _, task := range exec.Tasks {
+		if task.Status == StatusError {
+			exec.Status = StatusError
+			break
+		}
+		if task.Status == StatusRunning || task.Status == StatusWaiting {
+			exec.Status = StatusRunning
+			break
+		}
+	}
+	if exec.Status != StatusRunning {
 		exec.EndAt = e.UpdatedAt
 	}
-}
-
-type TaskEvent struct {
-	ExecutionID string    `json:"execution_id"`
-	TaskName    string    `json:"task_name"`
-	TaskStatus  string    `json:"task_status"`
-	TaskLog     string    `json:"task_log"`
-	UpdatedAt   time.Time `json:"updated_at"`
 }

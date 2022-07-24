@@ -31,11 +31,11 @@ const (
 )
 
 type TaskEvent struct {
-	ExecutionID string    `json:"execution_id"`
-	TaskName    string    `json:"task_name"`
-	TaskStatus  string    `json:"task_status"`
-	TaskLog     string    `json:"task_log"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ExecutionID string    `json:"executionId"`
+	TaskName    string    `json:"taskName"`
+	TaskStatus  string    `json:"taskStatus"`
+	TaskLog     string    `json:"taskLog"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type Task interface {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"sync"
+	"time"
 	"walle/api-server/storage"
 	"walle/api-server/workflow"
 
@@ -35,11 +36,19 @@ const (
 	StatusSuccess = "SUCCESS"
 )
 
+type TaskEvent struct {
+	ExecutionID string    `json:"executionId"`
+	TaskName    string    `json:"taskName"`
+	TaskStatus  string    `json:"taskStatus"`
+	TaskLog     string    `json:"taskLog"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
 func handleTaskMsg(m *nats.Msg) {
 	mu.Lock()
 	defer mu.Unlock()
 	log.Printf("Received task event: %s\n", string(m.Data))
-	var e workflow.TaskEvent
+	var e TaskEvent
 	if err := json.Unmarshal(m.Data, &e); err != nil {
 		log.Println("failed to parse event")
 	}
@@ -51,7 +60,13 @@ func handleTaskMsg(m *nats.Msg) {
 		return
 	}
 	// update task status
-	exec.UpdateTaskStatus(e)
+	exec.UpdateTaskStatus(workflow.ExecutionTask{
+		Name: e.TaskName,
+		ExecutionID: e.ExecutionID,
+		Status: e.TaskStatus,
+		Log: e.TaskLog,
+		UpdatedAt: e.UpdatedAt,
+	})
 	// store into database
 	if err := storage.Client.Save(exec).Error; err != nil {
 		log.Printf("failed to update execution, %s", err.Error())

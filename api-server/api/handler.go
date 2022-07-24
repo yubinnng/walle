@@ -24,52 +24,31 @@ func CreateWorkflow(c *gin.Context) {
 		return
 	}
 	yamlSpec := string(bytes)
-	// fmt.Println(yamlSpec)
-	wf, err := workflow.New(yamlSpec)
+	// parse spec
+	newWf, err := workflow.New(yamlSpec)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Error(err)
 		return
 	}
-	// fmt.Println(wf)
-	if err := storage.Client.Create(&wf).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		c.Error(err)
-		return
-	}
-}
-
-func UpdateWorkflow(c *gin.Context) {
-	name := c.Param("name")
 	// retrieve workflow from storage
-	var md workflow.Metadata
-	err := storage.Client.First(&md, "name = ?", name).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("workflow %q is not exist", name)})
-		return
-	}
-	if err != nil {
+	wf := &workflow.Metadata{}
+	err = storage.Client.First(&wf, "name = ?", wf.Name).Error
+	// unknown error
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		c.Error(err)
 		return
 	}
-	// read spec
-	bytes, err := c.GetRawData()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		c.Error(err)
-		return
-	}
-	yamlSpec := string(bytes)
-	// update
-	err = md.Update(yamlSpec)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		c.Error(err)
-		return
+	if err == nil {
+		// workflow exists, update metadata
+		wf.Update(yamlSpec)
+	} else {
+		// workflow not exists, create new workflow
+		wf = newWf
 	}
 	// save
-	if err := storage.Client.Save(md).Error; err != nil {
+	if err := storage.Client.Save(wf).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		c.Error(err)
 		return
@@ -97,9 +76,13 @@ func GetWorkflow(c *gin.Context) {
 }
 
 func ListWorkflows(c *gin.Context) {
-	var results []workflow.Metadata
-	storage.Client.Order("created_at asc").Find(&results)
-	c.JSON(http.StatusOK, results)
+	var list []workflow.Metadata
+	storage.Client.Select("name").Order("created_at asc").Find(&list)
+	names := make([]string, len(list))
+	for i, wf := range list {
+		names[i] = wf.Name
+	}
+	c.JSON(http.StatusOK, names)
 }
 
 func RemoveWorkflow(c *gin.Context) {
@@ -137,14 +120,20 @@ func ExecuteWorkflow(c *gin.Context) {
 	}
 }
 
-func ListExecution(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-	})
+func GetExecution(c *gin.Context) {
+	id := c.Param("id")
+	var exec workflow.Execution
+	err := storage.Client.First(&exec, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("execution %q is not exist", id)})
+		return
+	}
+	c.JSON(http.StatusOK, exec)
 }
 
-func GetExecution(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-	})
+func ListExecution(c *gin.Context) {
+	workflowName := c.Query("workflow_name")
+	var list []workflow.Execution
+	storage.Client.Select("id", "status", "start_at", "end_at").Where("workflow_name = ?", workflowName).Order("start_at asc").Find(&list)
+	c.JSON(http.StatusOK, list)
 }
