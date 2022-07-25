@@ -121,31 +121,24 @@ func (exec *Execution) Start() error {
 }
 
 func (exec *Execution) UpdateTaskStatus(e ExecutionTask) {
-	exec.Status = StatusSuccess
+	if exec.Status == StatusRunning {
+		// assume execution is success
+		exec.Status = StatusSuccess
+	}
 	for i := 0; i < len(exec.Tasks); i++ {
 		task := &exec.Tasks[i]
-		// update tasks
+		// find the task
 		if task.Name == e.Name {
 			task.Status = e.Status
 			task.Log = e.Log
 			task.UpdatedAt = e.UpdatedAt
 			if task.Status == StatusRunning {
 				task.StartedAt = e.UpdatedAt
+				exec.Status = StatusRunning
 			}
-			break
-		}
-	}
-	if exec.Status == StatusSuccess || exec.Status == StatusError {
-		return
-	}
-	exec.Status = StatusSuccess
-	for _, task := range exec.Tasks {
-		if task.Status == StatusError {
-			exec.Status = StatusError
-			break
-		}
-		if task.Status == StatusRunning || task.Status == StatusWaiting {
-			exec.Status = StatusRunning
+			if task.Status == StatusError || task.Status == StatusAbort {
+				exec.Status = StatusError
+			}
 			break
 		}
 	}
