@@ -3,8 +3,7 @@ import { LeftOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import mermaid from "mermaid";
-import { parseSpec, toMermaid } from "./utils";
+import { formatDatetime, parseSpec, toMermaid } from "./utils";
 
 const Execution = () => {
   let { id } = useParams();
@@ -25,12 +24,7 @@ const Execution = () => {
       let execution = resp.data;
       setExecution(execution);
       axios.get("/workflow/" + execution.workflowName).then((resp) => {
-        let text = toMermaid(parseSpec(resp.data.spec));
-        if (text) {
-          mermaid.render("workflow-graph", text, (graph) => {
-            setGraph(graph);
-          });
-        }
+        setGraph(toMermaid(parseSpec(resp.data.spec)));
       });
     });
   }, []);
@@ -65,8 +59,8 @@ const Execution = () => {
           </Row>
           <Row>
             <Col span={12}>{execution.status}</Col>
-            <Col span={6}>{execution.startAt}</Col>
-            <Col span={6}>{execution.endAt}</Col>
+            <Col span={6}>{formatDatetime(execution.startAt)}</Col>
+            <Col span={6}>{formatDatetime(execution.endAt)}</Col>
           </Row>
         </Space>
       </Card>
@@ -109,8 +103,8 @@ const Execution = () => {
                 <Row key={key}>
                   <Col span={4}>{task.name}</Col>
                   <Col span={2}>{task.status}</Col>
-                  <Col span={5}>{task.startedAt}</Col>
-                  <Col span={5}>{task.updatedAt}</Col>
+                  <Col span={5}>{formatDatetime(task.startedAt)}</Col>
+                  <Col span={5}>{formatDatetime(task.updatedAt)}</Col>
                   <Col span={8}>{task.log}</Col>
                 </Row>
               );

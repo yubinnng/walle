@@ -1,5 +1,6 @@
 import yaml from "js-yaml";
 import mermaid from "mermaid";
+import moment from "moment";
 
 const parseSpec = (spec) => {
   try {
@@ -41,7 +42,12 @@ const toMermaid = (workflow) => {
   }
 };
 
-var options = { year: "numeric", month: "long", day: "numeric" };
-const formatDatetime = (date) => {};
+const formatDatetime = (dateStr) => {
+  const date = moment(dateStr);
+  if (date.unix() > 0) {
+    return date.format("DD MMM YYYY HH:mm:ss");
+  }
+  return "-";
+};
 
-export { parseSpec, toMermaid };
+export { parseSpec, toMermaid, formatDatetime };

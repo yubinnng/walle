@@ -8,7 +8,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import mermaid from "mermaid";
-import { parseSpec, toMermaid } from "./utils";
+import { formatDatetime, parseSpec, toMermaid } from "./utils";
 
 const Workflow = () => {
   const navigate = useNavigate();
@@ -145,8 +145,8 @@ const Workflow = () => {
                     <Link to={"/exec/" + exec.id}>{exec.id}</Link>
                   </Col>
                   <Col span={4}>{exec.status}</Col>
-                  <Col span={6}>{exec.startAt}</Col>
-                  <Col span={6}>{exec.endAt}</Col>
+                  <Col span={6}>{formatDatetime(exec.startAt)}</Col>
+                  <Col span={6}>{formatDatetime(exec.endAt)}</Col>
                 </Row>
               );
             })}
