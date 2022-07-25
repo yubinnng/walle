@@ -1,6 +1,14 @@
 # Walle Serverless Workflow
 
-An open-source, vendor-neutral and cloud-native serverless workflow management system.
+## Overview
+
+Walle is an open-source, vendor-neutral and cloud-native serverless workflow management system.
+
+![Workflow](./images/workflow.png)
+
+![Execution](./images/execution.png)
+
+> The above are screenshots of the Walle web UI.
 
 ## Architecture
 
@@ -10,7 +18,7 @@ An open-source, vendor-neutral and cloud-native serverless workflow management s
 ```yaml
 version: 1.0
 name: example-workflow
-desc: Example Wrokflow
+desc: Example Workflow
 triggers:
 - type: http
   name: http-trigger
