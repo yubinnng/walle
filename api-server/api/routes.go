@@ -12,13 +12,13 @@ func SetupRoutes() *gin.Engine {
 	corsConfig.AllowAllOrigins = true
 	r.Use(cors.New(corsConfig))
 	// Workflow API
-	r.POST("/workflow", CreateWorkflow)
-	r.GET("/workflow/:name", GetWorkflow)
-	r.GET("/workflow/list", ListWorkflows)
-	r.DELETE("/workflow/:name", RemoveWorkflow)
+	r.POST("/api/workflow", CreateWorkflow)
+	r.GET("/api/workflow/:name", GetWorkflow)
+	r.GET("/api/workflow/list", ListWorkflows)
+	r.DELETE("/api/workflow/:name", RemoveWorkflow)
 	// Workflow execution API
-	r.POST("/workflow/:name/exec", ExecuteWorkflow)
-	r.GET("/execution/:id", GetExecution)
-	r.GET("/execution/list", ListExecution)
+	r.POST("/api/workflow/:name/exec", ExecuteWorkflow)
+	r.GET("/api/execution/:id", GetExecution)
+	r.GET("/api/execution/list", ListExecution)
 	return r
 }

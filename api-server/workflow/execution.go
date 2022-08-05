@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var ENGINE_URL = os.Getenv("WALLE_ENGINE_URL")
+var ENGINE_URL = os.Getenv("ENGINE_URL")
 
 const (
 	StatusWaiting = "WAITING"

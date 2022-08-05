@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
 	"sync"
 	"time"
 	"walle/api-server/storage"
@@ -16,9 +17,11 @@ import (
 var client *nats.Conn
 var mu sync.Mutex
 
+var NATS_URL = os.Getenv("NATS_URL")
+
 func Start() {
 	// Connect to a server
-	nc, err := nats.Connect(nats.DefaultURL)
+	nc, err := nats.Connect(NATS_URL)
 	if err != nil {
 		log.Fatal("cannot connect to NATS")
 	}
@@ -61,11 +64,11 @@ func handleTaskMsg(m *nats.Msg) {
 	}
 	// update task status
 	exec.UpdateTaskStatus(workflow.ExecutionTask{
-		Name: e.TaskName,
+		Name:        e.TaskName,
 		ExecutionID: e.ExecutionID,
-		Status: e.TaskStatus,
-		Log: e.TaskLog,
-		UpdatedAt: e.UpdatedAt,
+		Status:      e.TaskStatus,
+		Log:         e.TaskLog,
+		UpdatedAt:   e.UpdatedAt,
 	})
 	// store into database
 	if err := storage.Client.Save(exec).Error; err != nil {
