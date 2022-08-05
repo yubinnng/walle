@@ -1,0 +1,10 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://openfaas-gateway.example:8080
+functions:
+  walle-engine:
+    lang: walle-engine
+    handler: ./walle-engine
+    image: yubinnng/walle-engine:latest
+
