@@ -1,5 +1,4 @@
 import { Col, Row, Input, Button } from "antd";
-import mermaid from "mermaid";
 import { useState, useEffect } from "react";
 import { parseSpec, toMermaid } from "./utils";
 import axios from "axios";
@@ -24,7 +23,7 @@ const New = () => {
   const handleSubmit = () => {
     if (spec) {
       axios
-        .post("/workflow", spec, {
+        .post("/api/workflow", spec, {
           headers: {
             "content-type": "text/plain",
           },

@@ -20,10 +20,10 @@ const Execution = () => {
   const [graph, setGraph] = useState();
 
   useEffect(() => {
-    axios.get("/execution/" + id).then((resp) => {
+    axios.get("/api/execution/" + id).then((resp) => {
       let execution = resp.data;
       setExecution(execution);
-      axios.get("/workflow/" + execution.workflowName).then((resp) => {
+      axios.get("/api/workflow/" + execution.workflowName).then((resp) => {
         setGraph(toMermaid(parseSpec(resp.data.spec)));
       });
     });

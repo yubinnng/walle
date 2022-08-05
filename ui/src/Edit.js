@@ -16,7 +16,7 @@ const Edit = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("/workflow/" + name).then((resp) => {
+    axios.get("/api/workflow/" + name).then((resp) => {
       setSpec(resp.data.spec);
     });
   }, []);
@@ -32,7 +32,7 @@ const Edit = () => {
   const handleSubmit = () => {
     if (spec) {
       axios
-        .post("/workflow", spec, {
+        .post("/api/workflow", spec, {
           headers: {
             "content-type": "text/plain",
           },

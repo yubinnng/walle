@@ -24,7 +24,7 @@ const Workflow = () => {
   const [graph, setGraph] = useState();
 
   useEffect(() => {
-    axios.get("/workflow/" + name).then((resp) => {
+    axios.get("/api/workflow/" + name).then((resp) => {
       setWorkflow(resp.data);
       setGraph(toMermaid(parseSpec(resp.data.spec)));
     });
@@ -38,7 +38,7 @@ const Workflow = () => {
     setIsDeleteModalVisible(false);
   };
   const handleDelete = () => {
-    axios.delete("/workflow/" + name).then((resp) => {
+    axios.delete("/api/workflow/" + name).then((resp) => {
       navigate("/");
       setIsDeleteModalVisible(false);
     });
@@ -84,7 +84,7 @@ const Workflow = () => {
   const Executions = () => {
     const [executions, setExecutions] = useState([]);
     const fetchExecutions = () => {
-      axios.get("/execution/list?workflow_name=" + name).then((resp) => {
+      axios.get("/api/execution/list?workflow_name=" + name).then((resp) => {
         setExecutions(resp.data);
       });
     };
@@ -94,10 +94,10 @@ const Workflow = () => {
       return () => {
         clearInterval(inter);
       };
-    }, [name]);
+    }, []);
 
     const handleExec = () => {
-      axios.post("/workflow/" + workflow.name + "/exec");
+      axios.post("/api/workflow/" + workflow.name + "/exec");
       message.success("Successfully executed");
     };
 

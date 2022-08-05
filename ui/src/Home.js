@@ -23,7 +23,7 @@ const LeftSider = () => {
   };
 
   useEffect(() => {
-    axios.get("/workflow/list").then((resp) => {
+    axios.get("/api/workflow/list").then((resp) => {
       let names = [NEW].concat(resp.data);
       let items = names.map((name) => ({
         key: name,
