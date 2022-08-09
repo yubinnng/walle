@@ -18,6 +18,7 @@ type TaskSpec struct {
 	Type        string
 	Url         string
 	Method      string
+	Header      map[string]string
 	RequestBody map[string]string
 	Retry       int
 	Timeout     time.Duration
