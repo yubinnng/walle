@@ -12,9 +12,9 @@ Walle is an open-source, vendor-neutral and cloud-native serverless workflow man
 
 ### Prerequisite
 
-- Kubenetes
+- Kubernetes
 
-- OpenFaaS deployed on your Kubenetes
+- OpenFaaS deployed on your Kubernetes
 
 > [OpenFaaS Deployment guide for Kubernetes](https://docs.openfaas.cOpenfaasom/deployment/kubernetes)
 
@@ -25,14 +25,14 @@ export OPENFAAS_GATEWAY=XXX
 faas-cli deploy -f walle-engine.yml -g $OPENFAAS_GATEWAY
 ```
 
-### Deploy Other Components on Kubenetes
+### Deploy Other Components on Kubernetes
 
 ```shell
 chmod +x install.sh
 ./install.sh
 ```
 
-### Get UI DashBoard URL
+### Get UI Dashboard URL
 
 ```shell
 kubectl get ingress -n walle
@@ -45,7 +45,6 @@ Open `ADDRESS` in your browser
 
 ## Workflow Example
 ```yaml
-version: 1.0
 name: example-workflow
 desc: Example Wrokflow
 triggers:
@@ -53,30 +52,25 @@ triggers:
   name: http-trigger
   async: true
 tasks:
-# task-1, no dependency
-- name: task-1
-  type: http
-  url: http://example.com/api/task-1
-  timeout: 3s
-# task-2, no dependency
-- name: task-2
-  type: http
+- name: task-1 # task name
+  type: http # task type
+  url: http://example.com/api/task-1 # the cloud function URL
+  method: GET # HTTP method
+  headers: # HTTP headers
+  - name: Content-Type
+    value: application/json
+  body: {"message": "Hello Walle!"} # HTTP body
+  retry: 3 # max retry times if the task failed
+  timeout: 10s # max request timeout
+  depends: [] # dependency list
+- name: task-2 # Task 2, no dependency
   url: http://example.com/api/task-2
-  timeout: 3s
-# task-3, depends on task-1 and task-2, should be run after them
 - name: task-3
-  type: http
   url: http://example.com/api/task-3
-  method: GET
-  retry: 3
-  timeout: 3s
-  depends: [task-1, task-2]
-# task-4, only depends on task-1, should be immediately run after task-1
+  depends: [task-1, task-2] # depends on both Task 1 and Task 2, should be run after them
 - name: task-4
-  type: http
   url: http://example.com/api/task-4
-  timeout: 3s
-  depends: [task-1]
+  depends: [task-1] # Only depends on Task 1 and should be immediately run after Task 1
 ```
 
 ## Architecture
