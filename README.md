@@ -75,3 +75,53 @@ tasks:
 ## Architecture
 
 ![Architecture Diagram](./images/Architecture.png)
+
+
+## Support Workflow Patterns
+
+```yaml
+name: sequence-pattern
+tasks:
+- name: task-1
+  type: http
+  url: http://example.com/api/task-1
+- name: task-2
+  type: http
+  url: http://example.com/api/task-2
+  depends: [task-1]
+- name: task-3
+  type: http
+  url: http://example.com/api/task-3
+  depends: [task-2]
+```
+
+```yaml
+name: parallel-split-pattern
+tasks:
+- name: task-1
+  type: http
+  url: http://example.com/api/task-1
+- name: task-2
+  type: http
+  url: http://example.com/api/task-2
+  depends: [task-1]
+- name: task-3
+  type: http
+  url: http://example.com/api/task-3
+  depends: [task-1]
+```
+
+```yaml
+name: synchronization-pattern
+tasks:
+- name: task-1
+  type: http
+  url: http://example.com/api/task-1
+- name: task-2
+  type: http
+  url: http://example.com/api/task-2
+- name: task-3
+  type: http
+  url: http://example.com/api/task-3
+  depends: [task-1, task-2]
+```
