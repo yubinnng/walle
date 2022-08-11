@@ -88,8 +88,10 @@ func ListWorkflows(c *gin.Context) {
 
 func RemoveWorkflow(c *gin.Context) {
 	name := c.Param("name")
-	// remove from db
+	// remove workflow metadata
 	storage.Client.Where("name = ?", name).Delete(&workflow.Metadata{})
+	// remove workflow exectuions
+	storage.Client.Where("workflow_name = ?", name).Delete(&workflow.Execution{})
 }
 
 func ExecuteWorkflow(c *gin.Context) {
