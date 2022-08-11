@@ -46,7 +46,6 @@ Open `ADDRESS` in your browser
 ## Workflow Example
 ```yaml
 name: example-workflow
-desc: Example Wrokflow
 triggers:
 - type: http
   name: http-trigger

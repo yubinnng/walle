@@ -1,5 +1,4 @@
 name: example-workflow
-desc: Example Wrokflow
 triggers:
 - type: http
   name: http-trigger
