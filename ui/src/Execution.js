@@ -1,4 +1,4 @@
-import { Card, Space, Row, Col, Button } from "antd";
+import { Card, Space, Row, Col, Button, Popover } from "antd";
 import { LeftOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useEffect, useState } from "react";
@@ -93,19 +93,21 @@ const Execution = () => {
           >
             <Row>
               <Col span={4}>Name</Col>
-              <Col span={2}>Status</Col>
-              <Col span={5}>Started At</Col>
-              <Col span={5}>Updated At</Col>
-              <Col span={8}>Log</Col>
+              <Col span={4}>Status</Col>
+              <Col span={8}>Started At</Col>
+              <Col span={8}>Updated At</Col>
             </Row>
             {execution.tasks.map((task, key) => {
               return (
                 <Row key={key}>
-                  <Col span={4}>{task.name}</Col>
-                  <Col span={2}>{task.status}</Col>
-                  <Col span={5}>{formatDatetime(task.startedAt)}</Col>
-                  <Col span={5}>{formatDatetime(task.updatedAt)}</Col>
-                  <Col span={8}>{task.log}</Col>
+                  <Col span={4}>
+                    <Popover content={task.log} title="Task Log">
+                      <Button type="primary">{task.name}</Button>
+                    </Popover>
+                  </Col>
+                  <Col span={4}>{task.status}</Col>
+                  <Col span={8}>{formatDatetime(task.startedAt)}</Col>
+                  <Col span={8}>{formatDatetime(task.updatedAt)}</Col>
                 </Row>
               );
             })}
