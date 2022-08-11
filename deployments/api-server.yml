@@ -16,6 +16,7 @@ spec:
       containers:
         - name: api-server
           image: "yubinnng/walle-api-server"
+          imagePullPolicy: "Always"
           env:
             - name: POSTGRES_HOST
               value: postgres

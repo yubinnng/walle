@@ -16,6 +16,7 @@ spec:
       containers:
         - name: ui
           image: "yubinnng/walle-ui"
+          imagePullPolicy: "Always"
           ports:
             - containerPort: 80
 ---
