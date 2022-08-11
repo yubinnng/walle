@@ -133,20 +133,20 @@ const Workflow = () => {
             }}
           >
             <Row>
-              <Col span={8}>ID</Col>
+              <Col span={4}>ID</Col>
               <Col span={4}>Status</Col>
-              <Col span={6}>Started At</Col>
-              <Col span={6}>Ended At</Col>
+              <Col span={8}>Started At</Col>
+              <Col span={8}>Ended At</Col>
             </Row>
             {executions.map((exec, key) => {
               return (
                 <Row key={key}>
-                  <Col span={8}>
+                  <Col span={4}>
                     <Link to={"/exec/" + exec.id}>{exec.id}</Link>
                   </Col>
                   <Col span={4}>{exec.status}</Col>
-                  <Col span={6}>{formatDatetime(exec.startAt)}</Col>
-                  <Col span={6}>{formatDatetime(exec.endAt)}</Col>
+                  <Col span={8}>{formatDatetime(exec.startAt)}</Col>
+                  <Col span={8}>{formatDatetime(exec.endAt)}</Col>
                 </Row>
               );
             })}

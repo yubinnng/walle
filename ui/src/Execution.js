@@ -102,7 +102,7 @@ const Execution = () => {
                 <Row key={key}>
                   <Col span={4}>
                     <Popover content={task.log} title="Task Log">
-                      <Button type="primary">{task.name}</Button>
+                      <Button type="link">{task.name}</Button>
                     </Popover>
                   </Col>
                   <Col span={4}>{task.status}</Col>
