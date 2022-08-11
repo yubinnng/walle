@@ -27,8 +27,7 @@ func Start() {
 	}
 	client = nc
 	log.Println("connected to NATS")
-	// subscribe workflow status topic
-	// client.Subscribe("workflow-status", handleWorkflowMsg)
+	// subscribe task status topic
 	client.Subscribe("task-status", handleTaskMsg)
 }
 

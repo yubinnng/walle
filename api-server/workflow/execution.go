@@ -57,7 +57,7 @@ type Execution struct {
 	Tasks        ExecutionTasks `json:"tasks"`
 	Spec         string         `json:"-" gorm:"-"`
 	StartAt      time.Time      `json:"startAt"`
-	EndAt        time.Time      `json:"endAt"`
+	UpdatedAt    time.Time      `json:"updatedAt"`
 }
 
 func (Execution) TableName() string {
@@ -121,10 +121,7 @@ func (exec *Execution) Start() error {
 }
 
 func (exec *Execution) UpdateTaskStatus(e ExecutionTask) {
-	if exec.Status == StatusRunning {
-		// assume execution is success
-		exec.Status = StatusSuccess
-	}
+	allSuccess := true
 	for i := 0; i < len(exec.Tasks); i++ {
 		task := &exec.Tasks[i]
 		// find the task
@@ -141,8 +138,12 @@ func (exec *Execution) UpdateTaskStatus(e ExecutionTask) {
 			}
 			break
 		}
+		if task.Status != StatusSuccess {
+			allSuccess = false
+		}
 	}
-	if exec.Status != StatusRunning {
-		exec.EndAt = e.UpdatedAt
+	if allSuccess {
+		exec.Status = StatusSuccess
 	}
+	exec.UpdatedAt = e.UpdatedAt
 }
