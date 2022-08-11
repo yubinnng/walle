@@ -34,9 +34,8 @@ func NewExecution(id string, wfSpec WorkflowSpec) *Execution {
 	}
 	totalTasks := len(wfSpec.Tasks)
 	for _, taskSpec := range wfSpec.Tasks {
-		if taskSpec.Type == "http" {
-			exec.taskMap[taskSpec.Name] = NewHttpTask(taskSpec, id, totalTasks)
-		}
+		// deafult task type is HTTP task
+		exec.taskMap[taskSpec.Name] = NewHttpTask(taskSpec, id, totalTasks)
 	}
 	for _, taskSpec := range wfSpec.Tasks {
 		for _, dep := range taskSpec.Depends {
