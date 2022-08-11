@@ -45,7 +45,7 @@ const toMermaid = (workflow) => {
 const formatDatetime = (dateStr) => {
   const date = moment(dateStr);
   if (date.unix() > 0) {
-    return date.format("DD MMM YYYY HH:mm:ss");
+    return date.format("DD MMM YYYY HH:mm:ss:SSS");
   }
   return "-";
 };
