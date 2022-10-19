@@ -8,6 +8,50 @@ Walle is an open-source, vendor-neutral and cloud-native serverless workflow man
 
 ![Execution](./images/execution.png)
 
+## Architecture
+
+### Key Components
+
+![Architecture Diagram](./images/Architecture.png)
+
+### Workflow Engine
+
+![Workflow Engine Diagram](./images/Workflow%20Engine.png)
+
+### Workflow Executor
+![Workflow Executor Diagram](./images/Workflow%20Executor.png)
+
+## Parallelism
+
+### Sync Diagram
+
+![Sync Diagram](./images/Sync.png)
+
+### Batch Async
+
+![Batch Async Diagram](./images/Batch%20Async.png)
+
+### 🌟 Full Async
+![Full Async Diagram](./images/Fully%20Async.png)
+
+## Workflow Pattern
+
+### Sequential
+
+![Sequential Diagram](./images/Seq.png)
+
+### Parallel
+
+![Parallel Diagram](./images/Para.png)
+
+### Synchronize
+
+![Synchronize Diagram](./images/Sync%20Pattern.png)
+
+### Merge
+
+![Merge Diagram](./images/Merge.png)
+
 ## Quick Start
 
 ### Prerequisite
@@ -71,11 +115,6 @@ tasks:
   url: http://example.com/api/task-4
   depends: [task-1] # Only depends on Task 1 and should be immediately run after Task 1
 ```
-
-## Architecture
-
-![Architecture Diagram](./images/Architecture.png)
-
 
 ## Support Workflow Patterns
 
