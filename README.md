@@ -4,6 +4,8 @@
 
 Walle is an open-source, vendor-neutral and cloud-native serverless workflow management system.
 
+![New Workflow](./images/new-workflow.png)
+
 ![Workflow](./images/workflow.png)
 
 ![Execution](./images/execution.png)
